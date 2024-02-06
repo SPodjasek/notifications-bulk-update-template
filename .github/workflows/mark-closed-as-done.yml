@@ -15,39 +15,24 @@ jobs:
         with:
           github-token: ${{ secrets.GH_TOKEN }} 
           script: |-
-            github
-              .paginate("GET /notifications")
-              .then((notifications) =>
-                Promise.all(
-                  notifications
-                    .map((notification) =>
-                      notification.subject.type === "PullRequest"
-                        ? (async () => {
-                            const { data: pr } = await github.request(
-                              `GET ${new URL(notification.subject.url).pathname}`
-                            );
-                            if (pr.state === "closed") {
-                              await github.request(
-                                "DELETE /notifications/threads/{thread_id}",
-                                {
-                                  thread_id: notification.id,
-                                }
-                              );
+            github.paginate("GET /notifications").then(async (notifications) => {
+              let modified = 0;
+              for (const notification of notifications) {
+                if (notification.subject.type === "PullRequest") {
+                  const { data: pr } = await github.request(
+                    `GET ${new URL(notification.subject.url).pathname}`
+                  );
+                  if (pr.state === "closed") {
+                    await github.request("DELETE /notifications/threads/{thread_id}", {
+                      thread_id: notification.id,
+                    });
 
-                              return true;
-                            }
+                    modified += 1;
+                  }
+                }
+              }
 
-                            return false;
-                          })()
-                        : undefined
-                    )
-                    .filter((promise) => promise !== undefined)
-                )
-              )
-              .then((done) =>
-                core.summary.addRaw(
-                  `Marked ${done.filter((v) => !!v).length} notifications as done`, 
-                  true
-                )
-                .write()
-              );
+              await core.summary
+                .addRaw(`Marked ${modified} notifications as done`, true)
+                .write();
+            });
