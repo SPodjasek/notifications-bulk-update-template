@@ -1,6 +1,6 @@
 # Mark notifications for closed PRs as done
 
-This is a template repository wich you can use to create your own private repository with action which will 
+This is a template repository that can be used to create your own private repository with action which will 
 mark all of your notifications related to closed pull requests as done.
 
 ## Setup
